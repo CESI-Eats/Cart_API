@@ -1,7 +1,6 @@
 ﻿import dotenv from 'dotenv';
 import express from 'express';
 import mongoose from 'mongoose';
-import myModelRoutes from './routes/myModelRoutes';
 
 dotenv.config();
 const app = express();
@@ -18,7 +17,6 @@ const swaggerUi = require('swagger-ui-express')
 const swaggerFile = require('../swagger_output.json')
 // Create endpoint
 app.get('/', (req, res) => {res.status(200).json({ response: true });});
-app.use('/myModels', myModelRoutes);
 app.use('/doc', swaggerUi.serve, swaggerUi.setup(swaggerFile))
 
 // Start server
