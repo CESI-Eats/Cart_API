@@ -1,29 +1,23 @@
 ﻿import mongoose from 'mongoose';
 
 // Define schema for myModel
-const menuSchema = new mongoose.Schema({
-  id: {
-    type: String,
-    required: true
-  }
-}, { _id: false });
 
 const cartSchema = new mongoose.Schema({
-  id: {
+  _idUser: {
     type: String,
     required: true
   },
-  userId: {
+  _idRestorer: {
     type: String,
-    required: true
+    required: false
   },
   menus: {
-    type: [menuSchema],
-    required: true
+    type: [String],
+    required: false
   },
   price: {
     type: Number,
-    required: true
+    required: false
   }
 });
 
