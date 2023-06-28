@@ -1,40 +1,88 @@
-import {handleTopic, initExchange, initQueue, MessageLapinou, publishTopic} from "../services/lapinouService";
+import {
+    handleTopic,
+    initExchange,
+    initQueue,
+    MessageLapinou,
+    publishTopic,
+    sendMessage
+} from "../services/lapinouService";
 import Cart from "../models/cart";
 
 export function createCartsExchange() {
     initExchange('carts').then(exchange => {
-        initQueue(exchange, 'get.cart').then(({ queue, topic }) => {
+        initQueue(exchange, 'create.cart').then(({queue, topic}) => {
             handleTopic(queue, topic, async (msg) => {
                 const message = msg.content as MessageLapinou;
                 try {
                     console.log(` [x] Received message: ${JSON.stringify(message)}`);
-                    const cart = await Cart.findOne({ userId: message.content.id });
-                    if (cart == null) {
-                        throw new Error('Cannot find cart');
-                    }
-                    // Return the cart object as the response
-                    const response: MessageLapinou = {
+
+                    const cart = new Cart({
+                        _idUser: message.content.id,
+                        _idRestorer: '',
+                        menus:[],
+                        price: 0
+                    })
+                    await cart.save();
+
+                    await sendMessage({
                         success: true,
                         content: cart,
                         correlationId: message.correlationId,
-                        replyTo: message.replyTo
-                    };
-                    await publishTopic('carts', `${message.replyTo}.reply`, response);
+                        sender: 'cart'
+                    }, message.replyTo ?? '');
                 } catch (err) {
                     const errMessage = err instanceof Error ? err.message : 'An error occurred';
-                    console.error(errMessage);
+                    await sendMessage({
+                        success: false,
+                        content: errMessage,
+                        correlationId: message.correlationId,
+                        sender: 'cart'
+                    }, message.replyTo ?? '');
                 }
             });
         });
-        initQueue(exchange, 'add.to.cart').then(({ queue, topic }) => {
+
+        initQueue(exchange, 'get.cart').then(({queue, topic}) => {
             handleTopic(queue, topic, async (msg) => {
                 const message = msg.content as MessageLapinou;
                 try {
                     console.log(` [x] Received message: ${JSON.stringify(message)}`);
-                    const cart = await Cart.findOne({ userId: message.content.id });
+                    const cart = await Cart.findOne({_idUser: message.content.id});
                     if (cart == null) {
                         throw new Error('Cannot find cart');
                     }
+
+                    await sendMessage({
+                        success: true,
+                        content: cart,
+                        correlationId: message.correlationId,
+                        sender: 'cart'
+                    }, message.replyTo ?? '');
+                } catch (err) {
+                    const errMessage = err instanceof Error ? err.message : 'An error occurred';
+                    await sendMessage({
+                        success: false,
+                        content: errMessage,
+                        correlationId: message.correlationId,
+                        sender: 'cart'
+                    }, message.replyTo ?? '');
+                }
+            });
+        });
+        initQueue(exchange, 'add.to.cart').then(({queue, topic}) => {
+            handleTopic(queue, topic, async (msg) => {
+                const message = msg.content as MessageLapinou;
+                try {
+                    console.log(` [x] Received message: ${JSON.stringify(message)}`);
+                    const cart = await Cart.findOne({_idUser: message.content.id});
+                    if (cart == null) {
+                        throw new Error('Cannot find cart');
+                    }
+                    if (cart._idRestorer != message.content.menu.restorerId){
+                        cart.menus = [];
+                        cart._idRestorer = message.content.menu.restorerId;
+                    }
+
                     // Add message.content.menu.id to cart.menus list
                     cart.menus.push(message.content.menu.id);
 
@@ -45,25 +93,30 @@ export function createCartsExchange() {
                     await cart.save();
 
                     // Return the updated cart object as the response
-                    const response: MessageLapinou = {
+                    await sendMessage({
                         success: true,
                         content: cart,
                         correlationId: message.correlationId,
-                        replyTo: message.replyTo
-                    };
-                    await publishTopic('carts', `${message.replyTo}.reply`, response);
+                        sender: 'cart'
+                    }, message.replyTo ?? '');
                 } catch (err) {
                     const errMessage = err instanceof Error ? err.message : 'An error occurred';
-                    console.error(errMessage);
+                    await sendMessage({
+                        success: false,
+                        content: errMessage,
+                        correlationId: message.correlationId,
+                        sender: 'cart'
+                    }, message.replyTo ?? '');
                 }
             });
         });
-        initQueue(exchange, 'remove.to.cart').then(({ queue, topic }) => {
+        initQueue(exchange, 'remove.to.cart').then(({queue, topic}) => {
             handleTopic(queue, topic, async (msg) => {
                 const message = msg.content as MessageLapinou;
                 try {
                     console.log(` [x] Received message: ${JSON.stringify(message)}`);
-                    const cart = await Cart.findOne({ userId: message.content.id });
+                    const cart = await Cart.findOne({_idUser: message.content.id});
+
                     if (cart == null) {
                         throw new Error('Cannot find cart');
                     }
@@ -86,10 +139,15 @@ export function createCartsExchange() {
                         correlationId: message.correlationId,
                         replyTo: message.replyTo
                     };
-                    await publishTopic('carts', `${message.replyTo}.reply`, response);
+                    await publishTopic('carts', `${message.replyTo}`, response);
                 } catch (err) {
                     const errMessage = err instanceof Error ? err.message : 'An error occurred';
-                    console.error(errMessage);
+                    await sendMessage({
+                        success: false,
+                        content: errMessage,
+                        correlationId: message.correlationId,
+                        sender: 'cart'
+                    }, message.replyTo ?? '');
                 }
             });
         });
