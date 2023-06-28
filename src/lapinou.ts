@@ -6,7 +6,5 @@ export function initLapinou(){
     connectLapinou().then(async () => {
         createOrderingExchange();
         createCartsExchange();
-    }).catch((err) => {
-        console.error('Failed to connect to rabbitMQ');
     });
 }
