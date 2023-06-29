@@ -95,7 +95,7 @@ export function createCartsExchange() {
                     // Return the updated cart object as the response
                     await sendMessage({
                         success: true,
-                        content: cart,
+                        content: "Menu added",
                         correlationId: message.correlationId,
                         sender: 'cart'
                     }, message.replyTo ?? '');
@@ -133,13 +133,12 @@ export function createCartsExchange() {
                     await cart.save();
 
                     // Return the updated cart object as the response
-                    const response: MessageLapinou = {
+                    await sendMessage({
                         success: true,
-                        content: cart,
+                        content: "Menu removed",
                         correlationId: message.correlationId,
-                        replyTo: message.replyTo
-                    };
-                    await publishTopic('carts', `${message.replyTo}`, response);
+                        sender: 'cart'
+                    }, message.replyTo ?? '');
                 } catch (err) {
                     const errMessage = err instanceof Error ? err.message : 'An error occurred';
                     await sendMessage({
